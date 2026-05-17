@@ -1,0 +1,6 @@
+{
+  "name": "ElevenVox Telegram Bot",
+  "description": "A Telegram bot for AI voice dubbing and speech-to-speech conversion using ElevenLabs API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Voice Conversion", "Telegram Integration"]
+}
