@@ -78,7 +78,7 @@ async function startServer() {
 
     bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
-      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → New Audio (Voice-to-Voice)\n✍️ **Text message** → Audio (Text-to-Voice)\n\n1️⃣ Send me anything.\n2️⃣ Choose a voice.\n3️⃣ Receive your AI audio!\n\n💡 Use /deep for local filters (Deep, Medium, Aigu) without ElevenLabs.");
+      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).");
     });
 
     bot.onText(/\/deep/, (msg) => {
@@ -87,14 +87,15 @@ async function startServer() {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: "🔈 Deep Medium", callback_data: "filter_deep_medium" },
-              { text: "🔉 Deep Deep", callback_data: "filter_deep_deep" }
+              { text: "🔈 Deep Low", callback_data: "filter_deep_low" },
+              { text: "🔈 Deep Medium", callback_data: "filter_deep_medium" }
             ],
             [
-              { text: "🍃 Natural Deep", callback_data: "filter_natural_deep" },
-              { text: "🔊 Aigu (High)", callback_data: "filter_aigu" }
+              { text: "🔉 Deep Deep", callback_data: "filter_deep_deep" },
+              { text: "🍃 Natural Deep", callback_data: "filter_natural_deep" }
             ],
             [
+              { text: "🔊 Aigu (High)", callback_data: "filter_aigu" },
               { text: "❌ Reset", callback_data: "filter_none" }
             ]
           ],
@@ -215,7 +216,7 @@ async function startServer() {
           let audioBuffer: any;
 
           if (session.type === "sts" && session.lastAudioId) {
-            // SPEECH TO SPEECH
+            // SPEECH TO SPEECH (STS) - Captures original emotion and tone
             const fileLink = await bot?.getFileLink(session.lastAudioId);
             const response = await axios.get(fileLink, { responseType: "arraybuffer" });
             const tempInputPath = path.join(process.cwd(), `uploads/input_${chatId}_${Date.now()}.ogg`);
@@ -223,6 +224,13 @@ async function startServer() {
 
             const form = new FormData();
             form.append("audio", fs.createReadStream(tempInputPath));
+            form.append("model_id", "eleven_multilingual_sts_v2");
+            form.append("voice_settings", JSON.stringify({
+              stability: 0.45,
+              similarity_boost: 0.8,
+              style: 0.2, // Boost the original performance style
+              use_speaker_boost: true
+            }));
             
             const elevenResponse = await axios.post(
               `https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`,
@@ -290,6 +298,10 @@ async function startServer() {
         let filterOptions: string[] = [];
         
         switch (filterType) {
+          case "filter_deep_low":
+            // Very subtle pitch down + small warmth boost
+            filterOptions = ["asetrate=44100*0.93,atempo=1.075,bass=g=3:f=120"];
+            break;
           case "filter_deep_medium":
             // Slight pitch down + bass boost
             filterOptions = ["asetrate=44100*0.85,atempo=1.17,bass=g=5:f=100"];
@@ -345,6 +357,15 @@ async function startServer() {
       }
     }
   }
+
+  // Keep-alive endpoint for free hosting services (Render, etc.)
+  app.get("/keep-alive", (req, res) => {
+    res.status(200).send("I'm alive!");
+  });
+
+  app.get("/api/keep-alive", (req, res) => {
+    res.status(200).json({ status: "alive", timestamp: new Date().toISOString() });
+  });
 
   // API Routes
   app.get("/api/status", (req, res) => {

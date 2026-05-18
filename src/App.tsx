@@ -126,6 +126,19 @@ export default function App() {
           </section>
 
           <section className="hw-panel p-6 text-white/90">
+            <div className="hw-text-mono mb-4 text-white/40">Automated Ping (Keep-Alive)</div>
+            <div className="space-y-4">
+              <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white/60">
+                <p className="mb-2 italic text-hw-accent">For free hosting like Render:</p>
+                <p className="mb-2 text-[11px]">Use a pinger (like Cron-job.org) to hit this URL every 5-10 minutes to prevent the app from sleeping:</p>
+                <div className="bg-black/50 p-3 rounded font-mono text-[10px] break-all border border-white/10 select-all">
+                  {window.location.origin}/keep-alive
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="hw-panel p-6 text-white/90">
             <div className="hw-text-mono mb-4 text-white/40">Troubleshooting</div>
             <div className="space-y-3 text-xs leading-relaxed">
               <div className="border-l-2 border-hw-accent pl-3">
@@ -179,7 +192,7 @@ export default function App() {
                     <li>Pick an ElevenLabs voice from the menu</li>
                     <li>Wait for your AI audio file to be generated</li>
                     <li className="pt-2 border-t border-white/5">
-                      <span className="text-hw-accent font-bold">New:</span> Use <span className="text-white font-mono">/deep</span> to apply local filters (Deep, Natural Deep, Aigu) without ElevenLabs.
+                      <span className="text-hw-accent font-bold">New:</span> Use <span className="text-white font-mono">/deep</span> to apply local filters (Deep Low, Medium, Natural Deep, Aigu) without ElevenLabs.
                     </li>
                   </ol>
                   <button className="w-full mt-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-hw-accent hover:text-white transition-colors flex items-center justify-center gap-2">
