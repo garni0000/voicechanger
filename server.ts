@@ -28,7 +28,21 @@ async function startServer() {
     type?: "tts" | "sts" | "filter";
     filter?: string;
     emotion?: string;
+    lastLocalPath?: string;
   }> = {};
+
+  // Safely persist the latest audio path per user and delete any previous file to avoid storage waste
+  function saveUserAudioPath(chatId: number, newPath: string) {
+    const previous = userSessions[chatId]?.lastLocalPath;
+    if (previous && fs.existsSync(previous)) {
+      try {
+        fs.unlinkSync(previous);
+      } catch (e) {
+        console.warn("Could not delete old audio file:", e);
+      }
+    }
+    userSessions[chatId] = { ...userSessions[chatId], lastLocalPath: newPath };
+  }
 
   // Initialize Telegram Bot
   const bot = TELEGRAM_BOT_TOKEN ? new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true }) : null;
@@ -81,7 +95,7 @@ async function startServer() {
 
     bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
-      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).\n🎭 Utilisez /emotion pour donner une émotion réaliste à la voix !");
+      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).\n🎭 Utilisez /emotion pour donner une émotion réaliste à la voix !\n🎬 Utilisez /tovideo (ou cliquez sur le bouton sous l'audio) pour le transformer en vidéo avec une onde dynamique au format 3:1 !");
     });
 
     bot.onText(/\/deep/, (msg) => {
@@ -155,6 +169,17 @@ async function startServer() {
       if (!fileId) return;
 
       userSessions[chatId] = { ...userSessions[chatId], lastAudioId: fileId, type: "sts" };
+
+      // Pre-download audio so the user can easily run /tovideo directly or convert later
+      try {
+        const fileLink = await bot?.getFileLink(fileId);
+        const response = await axios.get(fileLink, { responseType: "arraybuffer" });
+        const localIncoming = path.join(process.cwd(), `uploads/incoming_${chatId}_${Date.now()}.ogg`);
+        fs.writeFileSync(localIncoming, response.data);
+        saveUserAudioPath(chatId, localIncoming);
+      } catch (err) {
+        console.error("Failed to pre-download incoming audio:", err);
+      }
 
       // If user has a filter active, offer the choice to use it or ElevenLabs
       if (userSessions[chatId]?.filter) {
@@ -234,6 +259,18 @@ async function startServer() {
         
         bot?.answerCallbackQuery(callbackQuery.id, { text: "Processing filter..." });
         await applyLocalFilter(chatId, session.lastAudioId, session.filter);
+        return;
+      }
+
+      if (data === "convert_to_video") {
+        const session = userSessions[chatId];
+        if (!session || !session.lastLocalPath) {
+          bot?.answerCallbackQuery(callbackQuery.id, { text: "Fichier inexistant ou expire" });
+          bot?.sendMessage(chatId, "❌ Aucun audio récent trouvé à convertir.");
+          return;
+        }
+        bot?.answerCallbackQuery(callbackQuery.id, { text: "Création vidéo..." });
+        await convertToWaveformVideo(chatId, session.lastLocalPath);
         return;
       }
 
@@ -355,8 +392,15 @@ async function startServer() {
           const tempOutputPath = path.join(process.cwd(), `uploads/output_${chatId}_${Date.now()}.mp3`);
           fs.writeFileSync(tempOutputPath, audioBuffer);
 
-          await bot?.sendVoice(chatId, tempOutputPath, { caption: `✅ Done! (${session.type === "tts" ? "Text-to-Voice" : "Voice-to-Voice"})` });
-          fs.unlinkSync(tempOutputPath);
+          await bot?.sendVoice(chatId, tempOutputPath, { 
+            caption: `✅ Done! (${session.type === "tts" ? "Text-to-Voice" : "Voice-to-Voice"})`,
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
+              ]
+            }
+          });
+          saveUserAudioPath(chatId, tempOutputPath);
         } catch (error: any) {
           const errorData = error.response?.data;
           let errorMsg = "";
@@ -433,9 +477,16 @@ async function startServer() {
           .audioFilters(filterOptions)
           .toFormat("mp3")
           .on("end", async () => {
-            await bot?.sendVoice(chatId, tempOutputPath, { caption: `✅ Done! (Filter: ${filterType.replace("filter_", "").replace("_", " ")})` });
+            await bot?.sendVoice(chatId, tempOutputPath, { 
+              caption: `✅ Done! (Filter: ${filterType.replace("filter_", "").replace("_", " ")})`,
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
+                ]
+              }
+            });
             fs.unlinkSync(tempInputPath);
-            fs.unlinkSync(tempOutputPath);
+            saveUserAudioPath(chatId, tempOutputPath);
           })
           .on("error", (err) => {
             console.error("FFmpeg error:", err);
@@ -448,6 +499,85 @@ async function startServer() {
         console.error("Local filter error:", error);
         bot?.sendMessage(chatId, "❌ Error processing local filter.");
       }
+    }
+
+    bot.onText(/\/tovideo/, async (msg) => {
+      const chatId = msg.chat.id;
+
+      // Detect if user is replying to a voice/audio message to convert it
+      const replyToMsg = msg.reply_to_message;
+      if (replyToMsg) {
+        const fileId = replyToMsg.voice?.file_id || replyToMsg.audio?.file_id;
+        if (fileId) {
+          bot.sendMessage(chatId, "📥 Téléchargement de l'audio répondu...");
+          try {
+            const fileLink = await bot.getFileLink(fileId);
+            const response = await axios.get(fileLink, { responseType: "arraybuffer" });
+            const localIncoming = path.join(process.cwd(), `uploads/incoming_${chatId}_${Date.now()}.ogg`);
+            fs.writeFileSync(localIncoming, response.data);
+            saveUserAudioPath(chatId, localIncoming);
+          } catch (err: any) {
+            bot.sendMessage(chatId, `❌ Échec du téléchargement de l'audio répondu : ${err.message}`);
+            return;
+          }
+        }
+      }
+
+      const session = userSessions[chatId];
+      if (!session || !session.lastLocalPath) {
+        bot.sendMessage(chatId, "❌ Aucun audio récent trouvé. Envoyez d'abord un message vocal, un texte, ou répondez à un message audio avec /tovideo !");
+        return;
+      }
+
+      await convertToWaveformVideo(chatId, session.lastLocalPath);
+    });
+
+    async function convertToWaveformVideo(chatId: number, inputPath: string) {
+      if (!fs.existsSync(inputPath)) {
+        bot?.sendMessage(chatId, "⚠️ Le fichier audio source n'existe plus ou est expiré. Veuillez ré-envoyer un message.");
+        return;
+      }
+
+      bot?.sendMessage(chatId, "🎬 **Production de votre vidéo avec onde audio dynamique (3:1)...** 🎨");
+
+      const tempVideoPath = path.join(process.cwd(), `uploads/wave_${chatId}_${Date.now()}.mp4`);
+
+      ffmpeg(inputPath)
+        .inputOptions(["-y"])
+        .complexFilter([
+          // High-contrast, modern layout in 3:1 aspect ratio with modern sky blue theme
+          "showwaves=s=1200x400:mode=line:rate=30:colors=0x22D3EE:scale=sqrt,format=yuv420p[v]"
+        ])
+        .map("[v]")
+        .audioCodec("aac")
+        .videoCodec("libx264")
+        .outputOptions([
+          "-pix_fmt yuv420p",
+          "-shortest",
+          "-b:a 192k"
+        ])
+        .on("end", async () => {
+          try {
+            await bot?.sendVideo(chatId, tempVideoPath, {
+              caption: "🎥 **Votre vidéo est prête !** (Onde audio 3:1)"
+            });
+          } catch (err: any) {
+            console.error("Failed to send video message:", err);
+            bot?.sendMessage(chatId, `❌ Erreur de transmission de la vidéo : ${err.message}`);
+          } finally {
+            if (fs.existsSync(tempVideoPath)) {
+              try { fs.unlinkSync(tempVideoPath); } catch {}
+            }
+          }
+        })
+        .on("error", (err) => {
+          console.error("FFmpeg video generation error:", err);
+          bot?.sendMessage(chatId, "❌ Impossible de générer la vidéo. (Assurez-vous d'utiliser un format audio compatible)");
+          if (fs.existsSync(tempVideoPath)) {
+            try { fs.unlinkSync(tempVideoPath); } catch {}
+          }
+        })
+        .save(tempVideoPath);
     }
   }
 

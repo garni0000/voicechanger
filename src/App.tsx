@@ -198,6 +198,9 @@ export default function App() {
                     <li className="pt-2 border-t border-white/5">
                       <span className="text-hw-accent font-bold">Local FX:</span> Use <span className="text-white font-mono">/deep</span> to apply offline voice modifications without API keys.
                     </li>
+                    <li className="pt-2 border-t border-white/5">
+                      <span className="text-hw-accent font-bold">Video Waveform:</span> Use <span className="text-white font-mono">/tovideo</span> (or click the button underneath any audio message) to transform the audio into a 3:1 aspect ratio MP4 video with a stunning neon waveform visualizer.
+                    </li>
                   </ol>
                   <button className="w-full mt-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-hw-accent hover:text-white transition-colors flex items-center justify-center gap-2">
                     Open Bot <ExternalLink className="w-4 h-4" />
