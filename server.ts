@@ -63,7 +63,7 @@ async function startServer() {
       { id: "Lcf7u9D9ndJHOvhl79A1", name: "Céline (Français)" },
       { id: "t0jbWlSQ5mHqebjPst9x", name: "Bastien (Français)" },
       { id: "5opxviIE64D8KxYYJKpx", name: "Sara (Français)" },
-      { id: "E2Ezcd6NoRiOvrIwom5L", name: "Seamina Kityy" },
+      { id: "E2Ezcd6NoRiOvrIwom5L", name: "Sea Kitty 🐾" },
       { id: "m2tcjxz5e0C8EqwM6N5j", name: "Marc" },
       { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum" },
     ];
@@ -302,9 +302,9 @@ async function startServer() {
             let use_speaker_boost = true;
 
             if (voiceId === "E2Ezcd6NoRiOvrIwom5L") {
-              stability = 0.38;
-              similarity_boost = 0.88;
-              style = 0.35;
+              stability = 0.35;
+              similarity_boost = 0.90;
+              style = 0.40;
             }
 
             if (session.emotion) {
@@ -352,9 +352,9 @@ async function startServer() {
             let style = 0.0;
 
             if (voiceId === "E2Ezcd6NoRiOvrIwom5L") {
-              stability = 0.38;
-              similarity_boost = 0.88;
-              style = 0.35;
+              stability = 0.35;
+              similarity_boost = 0.90;
+              style = 0.45;
             }
 
             if (session.emotion) {
@@ -548,11 +548,11 @@ async function startServer() {
           // High-contrast, modern layout in 3:1 aspect ratio with modern sky blue theme
           "showwaves=s=1200x400:mode=line:rate=30:colors=0x22D3EE:scale=sqrt,format=yuv420p[v]"
         ])
-        .map("[v]")
-        .map("0:a")
-        .audioCodec("aac")
-        .videoCodec("libx264")
         .outputOptions([
+          "-map [v]",
+          "-map 0:a",
+          "-c:v libx264",
+          "-c:a aac",
           "-pix_fmt yuv420p",
           "-shortest",
           "-b:a 192k"
@@ -573,7 +573,7 @@ async function startServer() {
         })
         .on("error", (err) => {
           console.error("FFmpeg video generation error:", err);
-          bot?.sendMessage(chatId, "❌ Impossible de générer la vidéo. (Assurez-vous d'utiliser un format audio compatible)");
+          bot?.sendMessage(chatId, `❌ Impossible de générer la vidéo : ${err.message}`);
           if (fs.existsSync(tempVideoPath)) {
             try { fs.unlinkSync(tempVideoPath); } catch {}
           }
