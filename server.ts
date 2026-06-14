@@ -27,6 +27,7 @@ async function startServer() {
     lastText?: string;
     type?: "tts" | "sts" | "filter";
     filter?: string;
+    emotion?: string;
   }> = {};
 
   // Initialize Telegram Bot
@@ -47,6 +48,7 @@ async function startServer() {
       { id: "b0Ev8lcOOXx2o9ZcF46H", name: "Martin (Français)" },
       { id: "Lcf7u9D9ndJHOvhl79A1", name: "Céline (Français)" },
       { id: "t0jbWlSQ5mHqebjPst9x", name: "Bastien (Français)" },
+      { id: "5opxviIE64D8KxYYJKpx", name: "Sara (Français)" },
       { id: "m2tcjxz5e0C8EqwM6N5j", name: "Marc" },
       { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum" },
     ];
@@ -78,7 +80,7 @@ async function startServer() {
 
     bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
-      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).");
+      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).\n🎭 Utilisez /emotion pour donner une émotion réaliste à la voix !");
     });
 
     bot.onText(/\/deep/, (msg) => {
@@ -102,6 +104,32 @@ async function startServer() {
         },
       };
       bot.sendMessage(chatId, "🎛️ Local FX Menu:\nChoose a filter to apply to your audio (No API key needed for these):", opts);
+    });
+
+    bot.onText(/\/emotion/, (msg) => {
+      const chatId = msg.chat.id;
+      const opts = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "🎭 Neutre (Default)", callback_data: "emotion_none" },
+              { text: "🤬 Colère (Angry)", callback_data: "emotion_angry" }
+            ],
+            [
+              { text: "😢 Triste (Sad)", callback_data: "emotion_sad" },
+              { text: "😃 Joyeux (Excited)", callback_data: "emotion_excited" }
+            ],
+            [
+              { text: "🤫 Chuchoter (Whisper)", callback_data: "emotion_whisper" },
+              { text: "😱 Effrayé (Scared)", callback_data: "emotion_scared" }
+            ],
+            [
+              { text: "📢 Dramatique (Dramatic)", callback_data: "emotion_dramatic" }
+            ]
+          ],
+        },
+      };
+      bot.sendMessage(chatId, "🎭 **Menu Emotion ElevenLabs**:\nSélectionnez une émotion ou un style pour votre voix (TTS & STS) :\n\n*(L'émotion modifie les paramètres de stabilité, de style et adapte le rendu de manière réaliste !)*", { reply_markup: opts.reply_markup, parse_mode: "Markdown" });
     });
 
     bot.on("audio", (msg) => handleAudio(msg));
@@ -186,6 +214,14 @@ async function startServer() {
         return;
       }
 
+      if (data.startsWith("emotion_")) {
+        const emotionType = data.replace("emotion_", "");
+        userSessions[chatId] = { ...userSessions[chatId], emotion: emotionType === "none" ? undefined : emotionType };
+        bot?.answerCallbackQuery(callbackQuery.id, { text: `Emotion: ${emotionType}` });
+        bot?.sendMessage(chatId, emotionType === "none" ? "✅ Émotion réinitialisée à Neutre." : `✅ Émotion configurée sur : ${emotionType.toUpperCase()}`);
+        return;
+      }
+
       if (data === "show_ai_menu") {
         await showVoiceMenu(chatId, "🎨 Select an AI voice:");
         return;
@@ -222,14 +258,36 @@ async function startServer() {
             const tempInputPath = path.join(process.cwd(), `uploads/input_${chatId}_${Date.now()}.ogg`);
             fs.writeFileSync(tempInputPath, response.data);
 
+            let stability = 0.45;
+            let similarity_boost = 0.8;
+            let style = 0.2;
+            let use_speaker_boost = true;
+
+            if (session.emotion) {
+              const emotionMap: Record<string, { stability: number, similarity: number, style: number }> = {
+                angry: { stability: 0.35, similarity: 0.8, style: 0.5 },
+                sad: { stability: 0.3, similarity: 0.75, style: 0.2 },
+                excited: { stability: 0.45, similarity: 0.85, style: 0.4 },
+                whisper: { stability: 0.35, similarity: 0.85, style: 0.25 },
+                scared: { stability: 0.3, similarity: 0.75, style: 0.3 },
+                dramatic: { stability: 0.4, similarity: 0.8, style: 0.35 }
+              };
+              const emoConfig = emotionMap[session.emotion];
+              if (emoConfig) {
+                stability = emoConfig.stability;
+                similarity_boost = emoConfig.similarity;
+                style = emoConfig.style;
+              }
+            }
+
             const form = new FormData();
             form.append("audio", fs.createReadStream(tempInputPath));
             form.append("model_id", "eleven_multilingual_sts_v2");
             form.append("voice_settings", JSON.stringify({
-              stability: 0.45,
-              similarity_boost: 0.8,
-              style: 0.2, // Boost the original performance style
-              use_speaker_boost: true
+              stability,
+              similarity_boost,
+              style,
+              use_speaker_boost
             }));
             
             const elevenResponse = await axios.post(
@@ -244,12 +302,35 @@ async function startServer() {
             fs.unlinkSync(tempInputPath);
           } else if (session.type === "tts" && session.lastText) {
             // TEXT TO SPEECH
+            let textToSpeak = session.lastText;
+            let stability = 0.5;
+            let similarity_boost = 0.75;
+            let style = 0.0;
+
+            if (session.emotion) {
+              const emotionMap: Record<string, { prefix: string, stability: number, similarity: number, style: number }> = {
+                angry: { prefix: "[angry] ", stability: 0.35, similarity: 0.8, style: 0.45 },
+                sad: { prefix: "[sad] ", stability: 0.3, similarity: 0.75, style: 0.15 },
+                excited: { prefix: "[excited] ", stability: 0.45, similarity: 0.85, style: 0.35 },
+                whisper: { prefix: "[whispering, soft] ", stability: 0.35, similarity: 0.85, style: 0.2 },
+                scared: { prefix: "[scared] ", stability: 0.3, similarity: 0.75, style: 0.25 },
+                dramatic: { prefix: "[dramatic] ", stability: 0.4, similarity: 0.8, style: 0.3 }
+              };
+              const emoConfig = emotionMap[session.emotion];
+              if (emoConfig) {
+                textToSpeak = `${emoConfig.prefix}${session.lastText}`;
+                stability = emoConfig.stability;
+                similarity_boost = emoConfig.similarity;
+                style = emoConfig.style;
+              }
+            }
+
             const ttsResponse = await axios.post(
               `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
               {
-                text: session.lastText,
+                text: textToSpeak,
                 model_id: "eleven_multilingual_v2",
-                voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                voice_settings: { stability, similarity_boost, style }
               },
               {
                 headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },

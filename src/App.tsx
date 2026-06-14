@@ -117,7 +117,7 @@ export default function App() {
               <div className="text-xs space-y-2">
                 <div className="text-white/40 font-mono">Recommandations FR/Multiling :</div>
                 <ul className="list-disc list-inside text-white/60 space-y-1">
-                  <li><span className="text-white/80">Lucie / Martin / Céline / Bastien</span> (Excellent pour le Français)</li>
+                  <li><span className="text-white/80">Lucie / Martin / Céline / Bastien / Sara</span> (Excellent pour le Français)</li>
                   <li><span className="text-white/80">Rachel / Adam / Daniel / Charlotte / Yan</span> (Multilingues & FR)</li>
                   <li>Ajoutez des voix via la <span className="text-white/80">Voice Library</span> sur ElevenLabs</li>
                 </ul>
@@ -192,7 +192,10 @@ export default function App() {
                     <li>Pick an ElevenLabs voice from the menu</li>
                     <li>Wait for your AI audio file to be generated</li>
                     <li className="pt-2 border-t border-white/5">
-                      <span className="text-hw-accent font-bold">New:</span> Use <span className="text-white font-mono">/deep</span> to apply local filters (Deep Low, Medium, Natural Deep, Aigu) without ElevenLabs.
+                      <span className="text-hw-accent font-bold">New:</span> Use <span className="text-white font-mono">/emotion</span> to inject real feelings (Joyful, Soft Whisper, Angry, Scared, Sad) into your AI audio.
+                    </li>
+                    <li className="pt-2 border-t border-white/5">
+                      <span className="text-hw-accent font-bold">Local FX:</span> Use <span className="text-white font-mono">/deep</span> to apply offline voice modifications without API keys.
                     </li>
                   </ol>
                   <button className="w-full mt-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-hw-accent hover:text-white transition-colors flex items-center justify-center gap-2">
