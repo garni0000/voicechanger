@@ -119,6 +119,7 @@ export default function App() {
                 <ul className="list-disc list-inside text-white/60 space-y-1">
                   <li><span className="text-white/80">Lucie / Martin / Céline / Bastien / Sara</span> (Excellent pour le Français)</li>
                   <li><span className="text-white/80">Rachel / Adam / Daniel / Charlotte / Yan</span> (Multilingues & FR)</li>
+                  <li><span className="text-hw-accent font-bold">New:</span> <span className="text-white font-mono font-bold">Seamina Kityy</span> (Cute & cutesy/expressive Custom Tune 🐾)</li>
                   <li>Ajoutez des voix via la <span className="text-white/80">Voice Library</span> sur ElevenLabs</li>
                 </ul>
               </div>

@@ -49,6 +49,7 @@ async function startServer() {
       { id: "Lcf7u9D9ndJHOvhl79A1", name: "Céline (Français)" },
       { id: "t0jbWlSQ5mHqebjPst9x", name: "Bastien (Français)" },
       { id: "5opxviIE64D8KxYYJKpx", name: "Sara (Français)" },
+      { id: "E2Ezcd6NoRiOvrIwom5L", name: "Seamina Kityy" },
       { id: "m2tcjxz5e0C8EqwM6N5j", name: "Marc" },
       { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum" },
     ];
@@ -263,6 +264,12 @@ async function startServer() {
             let style = 0.2;
             let use_speaker_boost = true;
 
+            if (voiceId === "E2Ezcd6NoRiOvrIwom5L") {
+              stability = 0.38;
+              similarity_boost = 0.88;
+              style = 0.35;
+            }
+
             if (session.emotion) {
               const emotionMap: Record<string, { stability: number, similarity: number, style: number }> = {
                 angry: { stability: 0.35, similarity: 0.8, style: 0.5 },
@@ -307,18 +314,23 @@ async function startServer() {
             let similarity_boost = 0.75;
             let style = 0.0;
 
+            if (voiceId === "E2Ezcd6NoRiOvrIwom5L") {
+              stability = 0.38;
+              similarity_boost = 0.88;
+              style = 0.35;
+            }
+
             if (session.emotion) {
-              const emotionMap: Record<string, { prefix: string, stability: number, similarity: number, style: number }> = {
-                angry: { prefix: "[angry] ", stability: 0.35, similarity: 0.8, style: 0.45 },
-                sad: { prefix: "[sad] ", stability: 0.3, similarity: 0.75, style: 0.15 },
-                excited: { prefix: "[excited] ", stability: 0.45, similarity: 0.85, style: 0.35 },
-                whisper: { prefix: "[whispering, soft] ", stability: 0.35, similarity: 0.85, style: 0.2 },
-                scared: { prefix: "[scared] ", stability: 0.3, similarity: 0.75, style: 0.25 },
-                dramatic: { prefix: "[dramatic] ", stability: 0.4, similarity: 0.8, style: 0.3 }
+              const emotionMap: Record<string, { stability: number, similarity: number, style: number }> = {
+                angry: { stability: 0.35, similarity: 0.8, style: 0.45 },
+                sad: { stability: 0.3, similarity: 0.75, style: 0.15 },
+                excited: { stability: 0.45, similarity: 0.85, style: 0.35 },
+                whisper: { stability: 0.35, similarity: 0.85, style: 0.20 },
+                scared: { stability: 0.3, similarity: 0.75, style: 0.25 },
+                dramatic: { stability: 0.4, similarity: 0.8, style: 0.30 }
               };
               const emoConfig = emotionMap[session.emotion];
               if (emoConfig) {
-                textToSpeak = `${emoConfig.prefix}${session.lastText}`;
                 stability = emoConfig.stability;
                 similarity_boost = emoConfig.similarity;
                 style = emoConfig.style;
