@@ -549,6 +549,7 @@ async function startServer() {
           "showwaves=s=1200x400:mode=line:rate=30:colors=0x22D3EE:scale=sqrt,format=yuv420p[v]"
         ])
         .map("[v]")
+        .map("0:a")
         .audioCodec("aac")
         .videoCodec("libx264")
         .outputOptions([
