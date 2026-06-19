@@ -107,11 +107,11 @@ export default function App() {
           </section>
 
           <section className="hw-panel p-6 text-white/90">
-            <div className="hw-text-mono mb-4 text-white/40">Voice Management</div>
+            <div className="hw-text-mono mb-4 text-white/40">Gestion des Voix</div>
             <div className="space-y-4">
               <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white/60">
-                <p className="mb-2">The bot now <span className="text-white">auto-syncs</span> with your ElevenLabs account.</p>
-                <p>Only voices present in your <span className="text-white">Voice Lab</span> will appear in the Telegram menu. This prevents errors caused by missing IDs.</p>
+                <p className="mb-2">Le bot se <span className="text-white">synchronise automatiquement</span> avec votre compte ElevenLabs.</p>
+                <p>Seules les voix installées dans votre <span className="text-white">Voice Lab</span> apparaîtront dans le menu Telegram, classées et paginées par pages de 8.</p>
               </div>
               
               <div className="text-xs space-y-2">
@@ -119,19 +119,20 @@ export default function App() {
                 <ul className="list-disc list-inside text-white/60 space-y-1">
                   <li><span className="text-white/80">Lucie / Martin / Céline / Bastien / Sara</span> (Excellent pour le Français)</li>
                   <li><span className="text-white/80">Rachel / Adam / Daniel / Charlotte / Yan</span> (Multilingues & FR)</li>
-                  <li><span className="text-hw-accent font-bold">New:</span> <span className="text-white font-mono font-bold">Sea Kitty</span> (Cute & cutesy/expressive Custom Tune 🐾)</li>
-                  <li>Ajoutez des voix via la <span className="text-white/80">Voice Library</span> sur ElevenLabs</li>
+                  <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Sea Kitty 🐾</span> (Un ton ultra expressif, mignon et engageant)</li>
+                  <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Seng 🎙️</span> (Une voix de caractère riche et immersive)</li>
+                  <li>Ajoutez n'importe quelle voix via la <span className="text-white/80">Voice Library</span> ElevenLabs.</li>
                 </ul>
               </div>
             </div>
           </section>
 
           <section className="hw-panel p-6 text-white/90">
-            <div className="hw-text-mono mb-4 text-white/40">Automated Ping (Keep-Alive)</div>
+            <div className="hw-text-mono mb-4 text-white/40">Ping Automatique (Keep-Alive)</div>
             <div className="space-y-4">
               <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white/60">
-                <p className="mb-2 italic text-hw-accent">For free hosting like Render:</p>
-                <p className="mb-2 text-[11px]">Use a pinger (like Cron-job.org) to hit this URL every 5-10 minutes to prevent the app from sleeping:</p>
+                <p className="mb-2 italic text-hw-accent">Pour éviter la mise en veille sur Render/Free tiers :</p>
+                <p className="mb-2 text-[11px]">Configurez un cron-job externe (ex: Cron-job.org) pour interroger cette URL toutes les 5 à 10 minutes :</p>
                 <div className="bg-black/50 p-3 rounded font-mono text-[10px] break-all border border-white/10 select-all">
                   {window.location.origin}/keep-alive
                 </div>
@@ -140,15 +141,15 @@ export default function App() {
           </section>
 
           <section className="hw-panel p-6 text-white/90">
-            <div className="hw-text-mono mb-4 text-white/40">Troubleshooting</div>
+            <div className="hw-text-mono mb-4 text-white/40">Résolution des Problèmes</div>
             <div className="space-y-3 text-xs leading-relaxed">
               <div className="border-l-2 border-hw-accent pl-3">
                 <div className="text-white font-bold mb-1 italic">"Unusual Activity Detected"</div>
-                <p className="text-white/50">Common on Free Tier. Avoid using VPNs or proxies. If persists, a paid ElevenLabs plan is required.</p>
+                <p className="text-white/50">Fréquent sur l'offre gratuite d'ElevenLabs. Évitez les VPNs ou proxies.</p>
               </div>
               <div className="border-l-2 border-hw-accent pl-3">
                 <div className="text-white font-bold mb-1 italic">"Paid Plan Required"</div>
-                <p className="text-white/50">ElevenLabs restricts community voices from the 'Voice Library' to paid plans for API use. Stick to 'Pre-made' voices like Rachel or Adam if you are on the Free Tier.</p>
+                <p className="text-white/50">ElevenLabs réserve l'API des voix de la bibliothèque communautaire aux abonnements payants. Restez sur des voix pré-définies (Rachel, Adam) sur un compte gratuit.</p>
               </div>
             </div>
           </section>
@@ -159,25 +160,25 @@ export default function App() {
           <section className="hw-panel p-8 text-white">
             <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
               <Settings className="w-6 h-6 text-hw-accent" />
-              Deployment Instructions
+              Directives de Déploiement
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <Step 
                   number="01"
-                  title="Configure BotToken"
-                  desc="Chat with @BotFather on Telegram to create a new bot and get your API Token."
+                  title="Créer le Bot Telegram"
+                  desc="Discutez avec @BotFather sur Telegram pour instancier un nouveau bot et copier son Token API."
                 />
                 <Step 
                   number="02"
-                  title="ElevenLabs Key"
-                  desc="Login to ElevenLabs, go to Profile Settings, and copy your API Key."
+                  title="Obtenir la clé ElevenLabs"
+                  desc="Connectez-vous à ElevenLabs, ouvrez votre profil et copiez votre clé API."
                 />
                 <Step 
                   number="03"
-                  title="Environment Sync"
-                  desc="Add TELEGRAM_BOT_TOKEN and ELEVENLABS_API_KEY to the Settings menu."
+                  title="Ajouter aux Secrets"
+                  desc="Configurez TELEGRAM_BOT_TOKEN et ELEVENLABS_API_KEY dans le panneau des Secrets de l'application."
                 />
               </div>
 
@@ -185,25 +186,27 @@ export default function App() {
                 <div className="bg-white/5 p-6 rounded-xl border border-white/10">
                   <h3 className="font-bold mb-4 flex items-center gap-2">
                     <Send className="w-4 h-4" />
-                    How to test
+                    Comment tester
                   </h3>
                   <ol className="text-sm text-white/60 space-y-3 list-decimal list-inside">
-                    <li>Open your bot on Telegram</li>
-                    <li>Send a <span className="text-white">🎙️ Voice message</span> (STS) or <span className="text-white">✍️ Text</span> (TTS)</li>
-                    <li>Pick an ElevenLabs voice from the menu</li>
-                    <li>Wait for your AI audio file to be generated</li>
-                    <li className="pt-2 border-t border-white/5">
-                      <span className="text-hw-accent font-bold">New:</span> Use <span className="text-white font-mono">/emotion</span> to inject real feelings (Joyful, Soft Whisper, Angry, Scared, Sad) into your AI audio.
-                    </li>
-                    <li className="pt-2 border-t border-white/5">
-                      <span className="text-hw-accent font-bold">Local FX:</span> Use <span className="text-white font-mono">/deep</span> to apply offline voice modifications without API keys.
-                    </li>
-                    <li className="pt-2 border-t border-white/5">
-                      <span className="text-hw-accent font-bold">Video Waveform:</span> Use <span className="text-white font-mono">/tovideo</span> (or click the button underneath any audio message) to transform the audio into a 3:1 aspect ratio MP4 video with a stunning neon waveform visualizer.
+                    <li>Ouvrez votre bot sur Telegram et cliquez sur /start.</li>
+                    <li>Envoyez un <span className="text-white">🎙️ Message vocal</span> ou un <span className="text-white">✍️ Texte</span>.</li>
+                    <li>Sélectionnez votre voix d'IA dans le menu tactile de 2 colonnes ou naviguez entre les pages.</li>
+                    <li>
+                      <span className="text-hw-accent font-bold">Clavier Tactile Permanent :</span> Utilisez les boutons de menu au bas de votre écran pour :
+                      <ul className="list-disc pl-5 mt-1 space-y-1 text-white/50 text-xs">
+                        <li>🎙️ Sélectionner à la volée une voix d'IA ElevenLabs</li>
+                        <li>🎭 Configurer l'Émotion souhaitée (Neutre, Colère, Excité, Triste, Chuchotement...)</li>
+                        <li>🎛️ Appliquer les Filtres Vocaux FX locaux (Filtres gratuits, instantanés et hors-ligne)</li>
+                        <li>🎬 Exporter instantanément en Vidéo Onde 3:1</li>
+                      </ul>
                     </li>
                   </ol>
-                  <button className="w-full mt-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-hw-accent hover:text-white transition-colors flex items-center justify-center gap-2">
-                    Open Bot <ExternalLink className="w-4 h-4" />
+                  <button 
+                    onClick={() => window.open(`https://t.me/`, "_blank")}
+                    className="w-full mt-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-hw-accent hover:text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    Ouvrir le Bot Telegram <ExternalLink className="w-4 h-4" />
                   </button>
                 </div>
               </div>

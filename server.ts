@@ -64,6 +64,7 @@ async function startServer() {
       { id: "t0jbWlSQ5mHqebjPst9x", name: "Bastien (Français)" },
       { id: "5opxviIE64D8KxYYJKpx", name: "Sara (Français)" },
       { id: "E2Ezcd6NoRiOvrIwom5L", name: "Sea Kitty 🐾" },
+      { id: "4oWJ6V7lazUIAOhvQwOk", name: "Seng 🎙️" },
       { id: "m2tcjxz5e0C8EqwM6N5j", name: "Marc" },
       { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum" },
     ];
@@ -93,13 +94,23 @@ async function startServer() {
       }
     }
 
-    bot.onText(/\/start/, (msg) => {
-      const chatId = msg.chat.id;
-      bot.sendMessage(chatId, "👋 Welcome to ElevenVox!\n\nI can convert your messages using AI:\n\n🎙️ **Voice message** → Audio AI (Speech-to-Speech)\n*Calque votre émotion et votre tonalité sur la nouvelle voix !*\n\n✍️ **Text message** → Audio (Text-to-Speech)\n\n1️⃣ Envoyez un message.\n2️⃣ Choisissez une voix.\n3️⃣ Recevez votre audio personnalisé ! \n\n💡 Utilisez /deep pour des filtres locaux (Deep Low, Natural, Aigu).\n🎭 Utilisez /emotion pour donner une émotion réaliste à la voix !\n🎬 Utilisez /tovideo (ou cliquez sur le bouton sous l'audio) pour le transformer en vidéo avec une onde dynamique au format 3:1 !");
-    });
+    // Main persistent layout menu for Telegram
+    const MAIN_KEYBOARD = {
+      keyboard: [
+        [
+          { text: "🎙️ Sélectionner une Voix" },
+          { text: "🎭 Configurer l'Émotion" }
+        ],
+        [
+          { text: "🎛️ Filtres Vocaux (Deep FX)" },
+          { text: "🎬 Créer Vidéo Onde 3:1" }
+        ]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: false
+    };
 
-    bot.onText(/\/deep/, (msg) => {
-      const chatId = msg.chat.id;
+    function sendDeepMenu(chatId: number) {
       const opts = {
         reply_markup: {
           inline_keyboard: [
@@ -113,16 +124,19 @@ async function startServer() {
             ],
             [
               { text: "🔊 Aigu (High)", callback_data: "filter_aigu" },
-              { text: "❌ Reset", callback_data: "filter_none" }
+              { text: "❌ Désactiver Filtre", callback_data: "filter_none" }
             ]
           ],
         },
       };
-      bot.sendMessage(chatId, "🎛️ Local FX Menu:\nChoose a filter to apply to your audio (No API key needed for these):", opts);
-    });
+      bot?.sendMessage(
+        chatId, 
+        "🎛️ **Menu Effets Vocaux Locaux (Deep FX)** :\n\nChoisissez un filtre à appliquer à votre audio (s'exécute localement sans consommer de crédit API) :", 
+        { reply_markup: opts.reply_markup, parse_mode: "Markdown" }
+      );
+    }
 
-    bot.onText(/\/emotion/, (msg) => {
-      const chatId = msg.chat.id;
+    function sendEmotionMenu(chatId: number) {
       const opts = {
         reply_markup: {
           inline_keyboard: [
@@ -144,13 +158,70 @@ async function startServer() {
           ],
         },
       };
-      bot.sendMessage(chatId, "🎭 **Menu Emotion ElevenLabs**:\nSélectionnez une émotion ou un style pour votre voix (TTS & STS) :\n\n*(L'émotion modifie les paramètres de stabilité, de style et adapte le rendu de manière réaliste !)*", { reply_markup: opts.reply_markup, parse_mode: "Markdown" });
+      bot?.sendMessage(
+        chatId, 
+        "🎭 **Sélection d'Émotions (ElevenLabs)** :\n\nChoisissez un ton ou style émotionnel pour vos futures générations (TTS & STS) :\n\n*(L'émotion modifie les paramètres de stabilité, de style et de clarté pour un rendu optimal !)*", 
+        { reply_markup: opts.reply_markup, parse_mode: "Markdown" }
+      );
+    }
+
+    bot.onText(/\/start/, (msg) => {
+      const chatId = msg.chat.id;
+      bot.sendMessage(
+        chatId, 
+        "👋 **Bienvenue sur ElevenVox !**\n\nJe peux métamorphoser vos messages en utilisant des voix d'IA de pointe :\n\n🎙️ **Message vocal (Vocal-to-Vocal)** :\n*Conserve parfaitement l'intensité et le rythme d'origine !*\n\n✍️ **Message texte (Text-to-Speech)** :\n*Génère un rendu vocal fluide et ultra-naturel.*\n\n💥 Utilisez le **menu permanent** en bas de votre écran pour naviguer facilement et configurer vos effets !", 
+        { reply_markup: MAIN_KEYBOARD, parse_mode: "Markdown" }
+      );
+    });
+
+    bot.onText(/\/deep/, (msg) => {
+      sendDeepMenu(msg.chat.id);
+    });
+
+    bot.onText(/\/emotion/, (msg) => {
+      sendEmotionMenu(msg.chat.id);
     });
 
     bot.on("audio", (msg) => handleAudio(msg));
     bot.on("voice", (msg) => handleAudio(msg));
     bot.on("text", (msg) => {
-      if (msg.text?.startsWith("/")) return;
+      const chatId = msg.chat.id;
+      const text = msg.text;
+      if (!text) return;
+
+      if (text.startsWith("/")) return;
+
+      // Map persistent button commands to their clean triggers
+      if (text === "🎙️ Sélectionner une Voix") {
+        const session = userSessions[chatId];
+        if (!session || (!session.lastAudioId && !session.lastText)) {
+          bot.sendMessage(chatId, "⚠️ **Aucun contenu récent !** Veuillez envoyer d'abord un message vocal (🎙️) ou un texte (✍️), puis cliquez à nouveau sur ce bouton pour lui prêter une voix d'IA.");
+          return;
+        }
+        showVoiceMenu(chatId, session.type === "tts" ? "✍️ Texte enregistré ! Sélectionnez une voix :" : "✨ Audio enregistré ! Sélectionnez une voix :");
+        return;
+      }
+
+      if (text === "🎭 Configurer l'Émotion") {
+        sendEmotionMenu(chatId);
+        return;
+      }
+
+      if (text === "🎛️ Filtres Vocaux (Deep FX)") {
+        sendDeepMenu(chatId);
+        return;
+      }
+
+      if (text === "🎬 Créer Vidéo Onde 3:1" || text === "🎬 Créer Vidéo") {
+        const session = userSessions[chatId];
+        if (!session || !session.lastLocalPath) {
+          bot.sendMessage(chatId, "❌ **Données introuvables :** Aucun audio récent trouvé. Envoyez d'abord un message vocal, un texte, ou répondez à un message audio existant avec /tovideo !");
+          return;
+        }
+        convertToWaveformVideo(chatId, session.lastLocalPath);
+        return;
+      }
+
       handleText(msg);
     });
 
@@ -160,7 +231,7 @@ async function startServer() {
       if (!text) return;
 
       userSessions[chatId] = { ...userSessions[chatId], lastText: text, type: "tts" };
-      await showVoiceMenu(chatId, "✍️ Text received! Choose a voice to speak this text:");
+      await showVoiceMenu(chatId, "✍️ **Texte reçu !** Choisissez maintenant une voix d'IA à lui attribuer :");
     }
 
     async function handleAudio(msg: any) {
@@ -187,43 +258,85 @@ async function startServer() {
         const opts = {
           reply_markup: {
             inline_keyboard: [
-              [{ text: `🚀 Apply Local Filter (${filterName})`, callback_data: "apply_local_filter" }],
-              [{ text: "🎨 Use ElevenLabs AI Voice Instead", callback_data: "show_ai_menu" }]
+              [{ text: `🚀 Appliquer le filtre local (${filterName.toUpperCase()})`, callback_data: "apply_local_filter" }],
+              [{ text: "🎨 Ignorer et utiliser une voix IA ElevenLabs", callback_data: "show_ai_menu" }]
             ]
           }
         };
-        bot?.sendMessage(chatId, "🎙️ Audio received! You have a filter active. What do you want to do?", opts);
+        bot?.sendMessage(chatId, `🎙️ **Audio enregistré !** Vous avez un style filtre local activé (${filterName.toUpperCase()}). Quelle action souhaitez-vous exécuter ?`, { reply_markup: opts.reply_markup, parse_mode: "Markdown" });
       } else {
-        await showVoiceMenu(chatId, "✨ Audio received! Select a voice for Voice-to-Voice conversion:");
+        await showVoiceMenu(chatId, "✨ **Audio enregistré !** Sélectionnez la voix d'IA ElevenLabs de votre choix pour transmuter ce message :");
       }
     }
 
-    async function showVoiceMenu(chatId: number, text: string) {
+    async function showVoiceMenu(chatId: number, text: string, page = 0, messageId?: number) {
       if (!ELEVENLABS_API_KEY) {
-        bot?.sendMessage(chatId, "⚠️ ElevenLabs API Key is missing. Only /deep local filters will work.");
+        bot?.sendMessage(chatId, "⚠️ Clé API ElevenLabs manquante. Seuls les filtres locaux /deep sont disponibles.");
         return;
       }
 
-      bot?.sendMessage(chatId, "🔍 Fetching available voices...");
       const availableVoices = await getVoices();
 
       if (availableVoices.length === 0) {
-        bot?.sendMessage(chatId, "❌ No voices found in your account. Add some to your Voice Lab first.");
+        bot?.sendMessage(chatId, "❌ Aucune voix trouvée sur votre compte ElevenLabs. Ajoutez-en via votre panel Voice Lab.");
         return;
       }
 
+      // Paginate at 8 voices per page
+      const PAGE_SIZE = 8;
+      const totalPages = Math.ceil(availableVoices.length / PAGE_SIZE);
+      const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+      
+      const start = currentPage * PAGE_SIZE;
+      const paginatedVoices = availableVoices.slice(start, start + PAGE_SIZE);
+
+      const rows: any[][] = [];
+      for (let i = 0; i < paginatedVoices.length; i += 2) {
+        const row = [
+          { text: paginatedVoices[i].name, callback_data: `voice_${paginatedVoices[i].id}` }
+        ];
+        if (i + 1 < paginatedVoices.length) {
+          row.push({ text: paginatedVoices[i + 1].name, callback_data: `voice_${paginatedVoices[i + 1].id}` });
+        }
+        rows.push(row);
+      }
+
+      // Add neat pagination navigation row
+      const navButtons: any[] = [];
+      if (currentPage > 0) {
+        navButtons.push({ text: "⬅️ Précédent", callback_data: `voicepage_${currentPage - 1}` });
+      }
+      if (currentPage < totalPages - 1) {
+        navButtons.push({ text: "Suivant ➡️", callback_data: `voicepage_${currentPage + 1}` });
+      }
+      if (navButtons.length > 0) {
+        rows.push(navButtons);
+      }
+
+      const formattedText = `${text}\n\n📖 _Page ${currentPage + 1} sur ${totalPages}_`;
+
       const opts = {
         reply_markup: {
-          inline_keyboard: availableVoices.slice(0, 10).reduce((acc: any[][], v: any, i: number) => {
-            if (i % 2 === 0) acc.push([{ text: v.name, callback_data: `voice_${v.id}` }]);
-            else acc[acc.length - 1].push({ text: v.name, callback_data: `voice_${v.id}` });
-            return acc;
-            // Add a back button if they came from filter menu
-          }, []),
+          inline_keyboard: rows
         },
+        parse_mode: "Markdown" as const
       };
 
-      bot?.sendMessage(chatId, text, opts);
+      if (messageId) {
+        try {
+          await bot?.editMessageText(formattedText, {
+            chat_id: chatId,
+            message_id: messageId,
+            reply_markup: opts.reply_markup,
+            parse_mode: "Markdown"
+          });
+        } catch (err) {
+          // If message text/markup is identical, ignore edit warning
+          console.warn("Edit voice menu warning:", err);
+        }
+      } else {
+        await bot?.sendMessage(chatId, formattedText, opts);
+      }
     }
 
     bot.on("callback_query", async (callbackQuery) => {
@@ -231,6 +344,16 @@ async function startServer() {
       const data = callbackQuery.data;
 
       if (!chatId || !data) return;
+
+      if (data.startsWith("voicepage_")) {
+        const pageNum = parseInt(data.replace("voicepage_", ""), 10);
+        bot?.answerCallbackQuery(callbackQuery.id);
+        const text = userSessions[chatId]?.type === "tts" 
+          ? "✍️ **Mode Texte** : Choisissez une voix d'IA pour synthétiser le texte :" 
+          : "✨ **Mode Audio** : Sélectionnez une voix d'IA pour la conversion :";
+        await showVoiceMenu(chatId, text, pageNum, callbackQuery.message?.message_id);
+        return;
+      }
 
       if (data.startsWith("filter_")) {
         const filterType = data;
