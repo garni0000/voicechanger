@@ -29,6 +29,7 @@ async function startServer() {
     filter?: string;
     emotion?: string;
     lastLocalPath?: string;
+    format?: "voice" | "mp3";
   }> = {};
 
   // Safely persist the latest audio path per user and delete any previous file to avoid storage waste
@@ -97,20 +98,41 @@ async function startServer() {
     }
 
     // Main persistent layout menu for Telegram
-    const MAIN_KEYBOARD = {
-      keyboard: [
-        [
-          { text: "🎙️ Sélectionner une Voix" },
-          { text: "🎭 Configurer l'Émotion" }
+    const getKeyboard = (chatId: number) => {
+      const session = userSessions[chatId];
+      const isMp3 = session?.format === "mp3";
+      return {
+        keyboard: [
+          [
+            { text: "🎙️ Sélectionner une Voix" },
+            { text: "🎭 Configurer l'Émotion" }
+          ],
+          [
+            { text: "🎛️ Filtres Vocaux (Deep FX)" },
+            { text: "🎬 Créer Vidéo Onde 3:1" }
+          ],
+          [
+            { text: isMp3 ? "⚙️ Format actuel : 🎵 MP3 (Audio)" : "⚙️ Format actuel : 🎙️ Note Vocale" }
+          ]
         ],
-        [
-          { text: "🎛️ Filtres Vocaux (Deep FX)" },
-          { text: "🎬 Créer Vidéo Onde 3:1" }
-        ]
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: false
+        resize_keyboard: true,
+        one_time_keyboard: false
+      };
     };
+
+    function toggleFormat(chatId: number) {
+      const session = userSessions[chatId] || {};
+      const currentFormat = session.format || "voice";
+      const newFormat = currentFormat === "mp3" ? "voice" : "mp3";
+      userSessions[chatId] = { ...session, format: newFormat };
+      
+      const formatLabel = newFormat === "mp3" ? "🎵 MP3 (Audio)" : "🎙️ Note Vocale";
+      bot?.sendMessage(
+        chatId, 
+        `⚙️ **Format de sortie mis à jour !**\n\nLe bot générera désormais vos créations vocales au format : **${formatLabel}**.\n\n* **Note Vocale** : Idéal pour écouter instantanément via le lecteur intégré de Telegram.\n* **MP3 (Audio)** : Fichier audio de haute qualité téléchargeable, parfait pour exporter ou partager sur d'autres applications.`,
+        { reply_markup: getKeyboard(chatId), parse_mode: "Markdown" }
+      );
+    }
 
     function sendDeepMenu(chatId: number) {
       const opts = {
@@ -172,7 +194,7 @@ async function startServer() {
       bot.sendMessage(
         chatId, 
         "👋 **Bienvenue sur ElevenVox !**\n\nJe peux métamorphoser vos messages en utilisant des voix d'IA de pointe :\n\n🎙️ **Message vocal (Vocal-to-Vocal)** :\n*Conserve parfaitement l'intensité et le rythme d'origine !*\n\n✍️ **Message texte (Text-to-Speech)** :\n*Génère un rendu vocal fluide et ultra-naturel.*\n\n💥 Utilisez le **menu permanent** en bas de votre écran pour naviguer facilement et configurer vos effets !", 
-        { reply_markup: MAIN_KEYBOARD, parse_mode: "Markdown" }
+        { reply_markup: getKeyboard(chatId), parse_mode: "Markdown" }
       );
     });
 
@@ -182,6 +204,10 @@ async function startServer() {
 
     bot.onText(/\/emotion/, (msg) => {
       sendEmotionMenu(msg.chat.id);
+    });
+
+    bot.onText(/\/format/, (msg) => {
+      toggleFormat(msg.chat.id);
     });
 
     bot.on("audio", (msg) => handleAudio(msg));
@@ -211,6 +237,11 @@ async function startServer() {
 
       if (text === "🎛️ Filtres Vocaux (Deep FX)") {
         sendDeepMenu(chatId);
+        return;
+      }
+
+      if (text.startsWith("⚙️ Format actuel :")) {
+        toggleFormat(chatId);
         return;
       }
 
@@ -517,14 +548,25 @@ async function startServer() {
           const tempOutputPath = path.join(process.cwd(), `uploads/output_${chatId}_${Date.now()}.mp3`);
           fs.writeFileSync(tempOutputPath, audioBuffer);
 
-          await bot?.sendVoice(chatId, tempOutputPath, { 
-            caption: `✅ Done! (${session.type === "tts" ? "Text-to-Voice" : "Voice-to-Voice"})`,
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
-              ]
-            }
-          });
+          const isMp3Format = session.format === "mp3";
+          const captionText = `✅ Done! (${session.type === "tts" ? "Text-to-Voice" : "Voice-to-Voice"})`;
+          const replyMarkup = {
+            inline_keyboard: [
+              [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
+            ]
+          };
+
+          if (isMp3Format) {
+            await bot?.sendAudio(chatId, tempOutputPath, { 
+              caption: captionText,
+              reply_markup: replyMarkup
+            });
+          } else {
+            await bot?.sendVoice(chatId, tempOutputPath, { 
+              caption: captionText,
+              reply_markup: replyMarkup
+            });
+          }
           saveUserAudioPath(chatId, tempOutputPath);
         } catch (error: any) {
           const errorData = error.response?.data;
@@ -602,14 +644,25 @@ async function startServer() {
           .audioFilters(filterOptions)
           .toFormat("mp3")
           .on("end", async () => {
-            await bot?.sendVoice(chatId, tempOutputPath, { 
-              caption: `✅ Done! (Filter: ${filterType.replace("filter_", "").replace("_", " ")})`,
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
-                ]
-              }
-            });
+            const isMp3Format = userSessions[chatId]?.format === "mp3";
+            const captionText = `✅ Done! (Filter: ${filterType.replace("filter_", "").replace("_", " ")})`;
+            const replyMarkup = {
+              inline_keyboard: [
+                [{ text: "🎥 Convertir en Vidéo (Onde 3:1)", callback_data: "convert_to_video" }]
+              ]
+            };
+
+            if (isMp3Format) {
+              await bot?.sendAudio(chatId, tempOutputPath, { 
+                caption: captionText,
+                reply_markup: replyMarkup
+              });
+            } else {
+              await bot?.sendVoice(chatId, tempOutputPath, { 
+                caption: captionText,
+                reply_markup: replyMarkup
+              });
+            }
             fs.unlinkSync(tempInputPath);
             saveUserAudioPath(chatId, tempOutputPath);
           })

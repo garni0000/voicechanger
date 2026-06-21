@@ -201,6 +201,7 @@ export default function App() {
                         <li>🎭 Configurer l'Émotion souhaitée (Neutre, Colère, Excité, Triste, Chuchotement...)</li>
                         <li>🎛️ Appliquer les Filtres Vocaux FX locaux (Filtres gratuits, instantanés et hors-ligne)</li>
                         <li>🎬 Exporter instantanément en Vidéo Onde 3:1</li>
+                        <li>⚙️ Choisir le format de sortie : Note Vocale standard ou Fichier MP3 de haute qualité</li>
                       </ul>
                     </li>
                   </ol>
