@@ -121,6 +121,8 @@ export default function App() {
                   <li><span className="text-white/80">Rachel / Adam / Daniel / Charlotte / Yan</span> (Multilingues & FR)</li>
                   <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Sea Kitty 🐾</span> (Un ton ultra expressif, mignon et engageant)</li>
                   <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Seng 🎙️</span> (Une voix de caractère riche et immersive)</li>
+                  <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Story Male 📖</span> (Idéal pour narrer des histoires de manière captivante)</li>
+                  <li><span className="text-hw-accent font-bold">New :</span> <span className="text-white font-mono font-bold">Girl Vocal 🎵</span> (Une voix féminine mélodieuse et claire)</li>
                   <li>Ajoutez n'importe quelle voix via la <span className="text-white/80">Voice Library</span> ElevenLabs.</li>
                 </ul>
               </div>

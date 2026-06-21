@@ -65,6 +65,8 @@ async function startServer() {
       { id: "5opxviIE64D8KxYYJKpx", name: "Sara (Français)" },
       { id: "E2Ezcd6NoRiOvrIwom5L", name: "Sea Kitty 🐾" },
       { id: "4oWJ6V7lazUIAOhvQwOk", name: "Seng 🎙️" },
+      { id: "2IUqjhqJ7AH1z0jFh6B0", name: "Story Male 📖" },
+      { id: "iHDcsclpAgVZFNeNdcib", name: "Girl Vocal 🎵" },
       { id: "m2tcjxz5e0C8EqwM6N5j", name: "Marc" },
       { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum" },
     ];
